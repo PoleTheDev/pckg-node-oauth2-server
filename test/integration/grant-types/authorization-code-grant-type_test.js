@@ -390,6 +390,32 @@ describe('AuthorizationCodeGrantType integration', function() {
         });
     });
 
+
+    it('should throw an error if the `code_verifier` was provided, but code codeChallange was not found', function() {
+      var authorizationCode = {
+        authorizationCode: 12345,
+        client: { id: 'foobar' },
+        expiresAt: new Date(new Date() * 2),
+        user: {},
+        codeChallengeMethod: 'S256',
+      };
+      var client = { id: 'foobar', isPublic: true };
+      var model = {
+        getAuthorizationCode: function() { return authorizationCode; },
+        revokeAuthorizationCode: function() {},
+        saveToken: function() {}
+      };
+      var grantType = new AuthorizationCodeGrantType({ accessTokenLifetime: 123, model: model });
+      var request = new Request({ body: { code: 12345, code_verifier: 'foo' }, headers: {}, method: {}, query: {} });
+
+      return grantType.getAuthorizationCode(request, client)
+        .then(should.fail)
+        .catch(function(e) {
+          e.should.be.an.instanceOf(InvalidGrantError);
+          e.message.should.equal('Invalid grant: code verifier is invalid');
+        });
+    });
+
     it('should throw an error if the `code_verifier` is invalid', function() {
       var authorizationCode = {
         authorizationCode: 12345,
